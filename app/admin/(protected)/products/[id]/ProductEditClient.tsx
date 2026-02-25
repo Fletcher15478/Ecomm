@@ -17,6 +17,7 @@ import {
   deleteSizeOptionAction,
 } from "@/app/api/admin/inventory/actions";
 import type { ProductSizeRow } from "@/lib/productSizeOptions";
+import type { FlavorOptionRow } from "@/lib/flavorOptions";
 
 function formatMoney(cents: number, currency: string): string {
   return new Intl.NumberFormat("en-US", {
@@ -41,6 +42,7 @@ interface ProductEditClientProps {
   productTypeOverride: string | null;
   pageOptions: readonly PageOption[];
   productFlavorNames: string[];
+  allFlavorOptions: FlavorOptionRow[];
   sizeOptions: ProductSizeRow[];
   isMultiPint: boolean;
   isTee: boolean;

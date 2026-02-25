@@ -43,15 +43,13 @@ export default async function AdminProductEditPage({
 
   const pintCount = getPintCount(item.name);
   const teeSizes = getTeeSizes(item.name);
+  const allFlavorOptions = await getFlavorOptions();
   // Per-product flavors: seed from global list if none saved yet
-  if (pintCount > 0) {
-    const allFlavorOptions = await getFlavorOptions();
-    if (allFlavorOptions.length > 0) {
-      await ensureProductFlavors(
-        catalogItemId,
-        allFlavorOptions.map((f) => f.name)
-      );
-    }
+  if (pintCount > 0 && allFlavorOptions.length > 0) {
+    await ensureProductFlavors(
+      catalogItemId,
+      allFlavorOptions.map((f) => f.name)
+    );
   }
   const productFlavorNames = pintCount > 0 ? await getProductFlavorNames(catalogItemId) : [];
   await ensureSizeOptionsForTee(item.variationId, teeSizes ?? []);
@@ -91,6 +89,7 @@ export default async function AdminProductEditPage({
         productTypeOverride={item.productTypeOverride}
         pageOptions={PAGE_OPTIONS}
         productFlavorNames={productFlavorNames}
+        allFlavorOptions={allFlavorOptions}
         sizeOptions={sizeOptions}
         isMultiPint={pintCount > 0}
         isTee={teeSizes != null}
