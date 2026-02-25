@@ -76,7 +76,7 @@ export async function listWeeksForProduct(
     return [];
   }
   const dates = (data ?? []).map((r: { week_start_date: string }) => r.week_start_date);
-  return [...new Set(dates)];
+  return Array.from(new Set(dates));
 }
 
 /** Insert batch codes for a catalog item for the current week (week starts Wednesday). */
@@ -89,7 +89,7 @@ export async function insertBatchCodes(
   const normalized = codes
     .map((c) => normalizeBatchCode(c))
     .filter((c): c is string => c !== null && c.length > 0);
-  const unique = [...new Set(normalized)];
+  const unique = Array.from(new Set(normalized));
   if (unique.length === 0) {
     return { ok: true, inserted: 0 };
   }

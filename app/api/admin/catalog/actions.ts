@@ -60,7 +60,7 @@ export async function getAdminCatalogWithSettings(): Promise<AdminCatalogItemWit
 
   const items = await listCatalogItems();
   const settingsMap = await getStoreProductSettings();
-  const uniqueIds = [...new Set(items.map((i) => i.id))];
+  const uniqueIds = Array.from(new Set(items.map((i) => i.id)));
   const imageMap = await getCatalogItemImageUrls(uniqueIds);
 
   const merged = items.map((item, index) => {

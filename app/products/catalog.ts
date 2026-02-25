@@ -26,7 +26,7 @@ export interface CatalogItemDisplay {
  */
 export async function getCatalogItems(): Promise<CatalogItemDisplay[]> {
   const items = await listCatalogItems();
-  const uniqueIds = [...new Set(items.map((i) => i.id))];
+  const uniqueIds = Array.from(new Set(items.map((i) => i.id)));
   const imageMap = await getCatalogItemImageUrls(uniqueIds);
   const settingsMap = await getStoreProductSettings();
 

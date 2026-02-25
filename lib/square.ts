@@ -115,7 +115,7 @@ export async function getCatalogItemImageUrls(
 ): Promise<Map<string, string>> {
   const client = getSquareClient();
   if (!client || itemIds.length === 0) return new Map();
-  const unique = [...new Set(itemIds)];
+  const unique = Array.from(new Set(itemIds));
   const map = new Map<string, string>();
   const BATCH_SIZE = 100;
   try {
