@@ -1,0 +1,365 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Program Narrow & Poppins loaded via next/font in app/layout (app/fonts.ts) */
+
+/* Millie's brand */
+:root {
+  --millies-pink: #ef4b81;
+  --millies-pink-hover: #ef4c81;
+  --store-banner-height: 82px;
+}
+
+/* Default body font: Poppins (use var(--font-poppins) in components) */
+body {
+  font-family: var(--font-poppins), system-ui, sans-serif;
+}
+
+/* St. Patrick's Day store banner – below navbar (shop-hero styling) */
+.store-banner {
+  position: fixed;
+  top: 70px;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  min-height: var(--store-banner-height);
+  padding: 14px 0;
+  background-color: #0d7a3d;
+  background-image: url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.18'%3E%3Ccircle cx='60' cy='38' r='18'/%3E%3Ccircle cx='40' cy='62' r='18'/%3E%3Ccircle cx='80' cy='62' r='18'/%3E%3Crect x='56' y='68' width='8' height='22' rx='4'/%3E%3C/g%3E%3C/svg%3E"), linear-gradient(165deg, #118044 0%, #0d7a3d 45%, #0a6b34 100%);
+  background-repeat: repeat, no-repeat;
+  background-size: 120px 120px, 100% 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-program-narrow), sans-serif;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.store-banner-inner {
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 1.25rem;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+.store-banner-line {
+  margin: 0;
+  color: #ffffff !important;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: 1.5px;
+  font-size: 1.35rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+.store-banner-line:first-child {
+  margin-bottom: 3px;
+}
+@media (min-width: 640px) {
+  .store-banner-line {
+    font-size: 1.75rem;
+    letter-spacing: 2px;
+  }
+}
+@media (min-width: 1024px) {
+  .store-banner-line {
+    font-size: 2.25rem;
+    letter-spacing: 2.5px;
+  }
+}
+
+.store-layout-main {
+  padding-top: calc(var(--store-banner-height) + 70px);
+}
+/* Product detail page: no banner, so only navbar offset */
+.store-layout-main:has([data-page="product-detail"]) {
+  padding-top: 70px;
+}
+
+/* Floating cart button – bottom right, ice cream cone icon, count badge */
+.floating-cart-button {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+/* Shop tabs – Millie's font */
+.product-tabs,
+.product-tabs button {
+  font-family: var(--font-program-narrow), sans-serif;
+}
+
+/* Product page shipping info – Millie's font, collapsible sections */
+/* Product detail long description – Millie's font, cute card */
+.product-description-box {
+  font-family: var(--font-program-narrow), sans-serif;
+}
+
+.product-shipping-info,
+.product-shipping-details {
+  font-family: var(--font-program-narrow), sans-serif;
+}
+.product-shipping-title {
+  font-family: var(--font-program-narrow), sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.product-shipping-text {
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+.product-shipping-summary {
+  font-family: var(--font-program-narrow), sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #374151;
+}
+.product-shipping-summary:hover {
+  color: var(--millies-pink);
+}
+.product-shipping-plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  font-size: 1.1rem;
+  color: var(--millies-pink);
+}
+.product-shipping-details[open] .product-shipping-plus {
+  transform: rotate(45deg);
+}
+
+/* Checkout – Millie's font + pink for section titles and labels */
+.checkout-section-title {
+  font-family: var(--font-program-narrow), sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--millies-pink);
+}
+.checkout-label {
+  font-family: var(--font-program-narrow), sans-serif;
+  color: var(--millies-pink);
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+}
+
+/* Millie's top navbar – bar */
+.millies-top-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  height: 70px;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.millies-navbar-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  height: 70px;
+  padding: 0 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.millies-navbar-logo {
+  flex-shrink: 0;
+}
+
+.millies-navbar-logo a {
+  display: flex;
+  align-items: center;
+}
+
+/* Logo image – 50px (40px @ 768, 35px @ 480) */
+.millies-logo-image {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+}
+
+@media (max-width: 768px) {
+  .millies-logo-image {
+    height: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .millies-logo-image {
+    height: 35px;
+  }
+}
+
+/* Nav links evenly spaced; group centered between logo and button */
+.millies-middle-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2.5rem;
+  flex: 1;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+/* Nav links – Program Narrow, 28px → 24px @ 1024 → 18px @ 768 → 16px @ 480 */
+.millies-top-nav-middle {
+  font-family: var(--font-program-narrow), sans-serif;
+  font-size: 28px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #f481a7;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+
+.millies-top-nav-middle:hover {
+  color: #ef4c81;
+}
+
+@media (max-width: 1024px) {
+  .millies-top-nav-middle {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .millies-top-nav-middle {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .millies-top-nav-middle {
+    font-size: 16px;
+  }
+}
+
+.millies-navbar-cta {
+  flex-shrink: 0;
+}
+
+/* Order button – Program Narrow, 27px → 16px @ 768 → 14px @ 480 */
+.millies-order-button {
+  display: inline-block;
+  padding: 0.5rem 1.25rem;
+  font-family: var(--font-program-narrow), sans-serif;
+  font-size: 27px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: -0.18px;
+  color: #fff;
+  background-color: #ef4b81;
+  border-radius: 9px;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.millies-order-button:hover {
+  background-color: #ef4c81;
+}
+
+@media (max-width: 768px) {
+  .millies-order-button {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .millies-order-button {
+    font-size: 14px;
+  }
+}
+
+/* Mobile menu toggle (hamburger) */
+.millies-mobile-menu-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.millies-mobile-menu-toggle span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: #1a1a1a;
+  border-radius: 1px;
+  transition: transform 0.3s, opacity 0.3s;
+}
+
+.millies-mobile-menu-toggle.active span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.millies-mobile-menu-toggle.active span:nth-child(2) {
+  opacity: 0;
+}
+
+.millies-mobile-menu-toggle.active span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+@media (max-width: 1024px) {
+  .millies-mobile-menu-toggle {
+    display: flex;
+  }
+
+  .millies-middle-nav {
+    position: absolute;
+    top: 70px;
+    left: 0;
+    right: 0;
+    flex: none;
+    margin-left: 0;
+    background: #fff;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1rem 1.5rem 1.5rem;
+    gap: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.2s, padding 0.2s;
+  }
+
+  .millies-navbar-cta {
+    padding-left: 0;
+  }
+
+  .millies-middle-nav.active {
+    max-height: 80vh;
+    opacity: 1;
+    overflow-y: auto;
+  }
+
+  .millies-middle-nav .millies-top-nav-middle {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    font-size: 24px;
+  }
+
+  .millies-middle-nav .millies-top-nav-middle:last-of-type {
+    border-bottom: none;
+  }
+}
