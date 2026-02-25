@@ -8,7 +8,7 @@ import type { ProductType } from "@/lib/square";
 const TABS: { id: ProductType; label: string; description: string }[] = [
   { id: "ice_cream", label: "Ice Cream", description: "Pints, 4-packs & more" },
   { id: "merchandise", label: "Merchandise", description: "Apparel & gear" },
-  { id: "gift_cards", label: "Gift Cards", description: "Give the gift of Millie's" },
+  { id: "gift_card", label: "Gift Cards", description: "Give the gift of Millie's" },
 ];
 
 const SQUARE_GIFT_CARD_URL = "https://squareup.com/gift/MLDG58HCNKRJZ/order";
@@ -52,7 +52,7 @@ export function ProductTabs({ items }: { items: CatalogItemDisplay[] }) {
       </div>
 
       <div role="tabpanel" aria-label={TABS.find((t) => t.id === active)?.label}>
-        {active === "gift_cards" ? (
+        {active === "gift_card" ? (
           <div className="flex justify-center">
             <a
               href={SQUARE_GIFT_CARD_URL}
