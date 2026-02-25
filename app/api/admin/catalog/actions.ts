@@ -48,6 +48,9 @@ export type AdminCatalogItemWithSettings = {
   featured: boolean;
   seasonal: boolean;
   imageUrl: string | null;
+  productTypeOverride: string | null;
+  priceOverrideCents: number | null;
+  longDescriptionOverride: string | null;
 };
 
 /** Catalog items merged with store_product_settings for admin store board. */
