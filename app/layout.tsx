@@ -7,7 +7,10 @@ export const metadata: Metadata = {
   title: "Store",
   description: "Custom ecommerce platform",
   icons: {
-    icon: [{ url: "/images/cone-pink.svg", type: "image/svg+xml" }],
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/images/cone-pink.svg", type: "image/svg+xml" },
+    ],
     apple: [{ url: "/images/cone-pink.svg", type: "image/svg+xml" }],
   },
 };

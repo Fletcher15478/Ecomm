@@ -5,12 +5,12 @@ import Image from "next/image";
 import { useState } from "react";
 
 const MILLIES_PINK = "#ef4b81";
-/* Nav links as in reference: FLAVORS through CONTACT only */
+/* Nav links point to main Millie's site */
 const NAV_LINKS = [
   { href: "https://www.millieshomemade.com/flavors/", label: "FLAVORS" },
   { href: "https://www.millieshomemade.com/about-millies-ice-cream/", label: "OUR STORY" },
-  { href: "/events", label: "EVENTS" },
-  { href: "https://www.milliesfranchise.com", label: "FRANCHISING" },
+  { href: "https://millies-homemade.com/events", label: "EVENTS" },
+  { href: "https://www.milliesfranchise.com/", label: "FRANCHISING" },
   { href: "https://www.millieshomemade.com/locations/", label: "LOCATIONS" },
   { href: "https://www.millieshomemade.com/contact/", label: "CONTACT" },
 ];
@@ -22,7 +22,7 @@ export function StoreNavbar() {
     <nav className="millies-top-navbar">
       <div className="millies-navbar-container">
         <div className="millies-navbar-logo">
-          <Link href="/">
+          <Link href="https://www.millieshomemade.com/">
             <Image
               src="/images/millies-logo.png"
               alt="millie's"
@@ -57,7 +57,7 @@ export function StoreNavbar() {
           ))}
         </div>
         <div className="millies-navbar-cta">
-          <Link href="/products" className="millies-order-button">
+          <Link href="https://www.millieshomemade.com/order-now/" className="millies-order-button">
             ORDER NOW
           </Link>
         </div>
