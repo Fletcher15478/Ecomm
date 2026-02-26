@@ -5,7 +5,16 @@ import dynamic from "next/dynamic";
 import {
   submitBatchCodesAction,
   getBatchCodesByWeekAction,
+  getAllBatchCodesForTableAction,
 } from "@/app/api/admin/catalog/actions";
+
+const ENTRY_TYPES = [
+  { value: "new_case", label: "New case" },
+  { value: "no_new_case", label: "No new case" },
+  { value: "loosie", label: "Loosie" },
+  { value: "special", label: "Special" },
+] as const;
+type EntryTypeValue = (typeof ENTRY_TYPES)[number]["value"];
 
 const BatchCodeScanner = dynamic(
   () => import("@/components/admin/BatchCodeScanner").then((m) => ({ default: m.BatchCodeScanner })),
@@ -64,6 +73,14 @@ export function BatchCodesClient({
     setWeekStart(thisWeekStart);
   }, [selectedId, thisWeekStart]);
 
+  const loadTable = () => {
+    setTableLoading(true);
+    getAllBatchCodesForTableAction(tableWeek || undefined).then((rows) => {
+      setTableRows(rows);
+      setTableLoading(false);
+    });
+  };
+
   const addCode = (raw: string) => {
     const normalized = normalizeBatchCode(raw);
     if (normalized && !codes.includes(normalized)) {
@@ -96,7 +113,7 @@ export function BatchCodesClient({
       return;
     }
     startTransition(async () => {
-      const result = await submitBatchCodesAction(selectedId, codes);
+      const result = await submitBatchCodesAction(selectedId, codes, entryType, weekStart);
       if (result.success) {
         setMessage({ type: "ok", text: `Saved ${result.inserted} batch code(s) for this week.` });
         setCodes([]);
@@ -166,6 +183,9 @@ export function BatchCodesClient({
                 className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-800"
               >
                 {r.code}
+                {r.entry_type && r.entry_type !== "loosie" && (
+                  <span className="ml-1 text-gray-500">({ENTRY_TYPES.find((t) => t.value === r.entry_type)?.label ?? r.entry_type})</span>
+                )}
               </li>
             ))}
           </ul>
@@ -246,6 +266,83 @@ export function BatchCodesClient({
           {message.text}
         </p>
       )}
+
+      <div className="border-t border-gray-200 pt-6 mt-6">
+        <h2 className="text-lg font-semibold mb-3" style={{ color: "var(--millies-pink)" }}>
+          All batch codes (table &amp; export)
+        </h2>
+        <p className="text-gray-600 text-sm mb-3">
+          Load codes into a table and download as CSV to open in Google Sheets.
+        </p>
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <select
+            value={tableWeek}
+            onChange={(e) => setTableWeek(e.target.value)}
+            className="rounded border border-gray-300 px-3 py-2 bg-white text-sm"
+          >
+            <option value="">All weeks</option>
+            <option value={thisWeekStart}>This week ({thisWeekLabel})</option>
+          </select>
+          <button
+            type="button"
+            onClick={loadTable}
+            disabled={tableLoading}
+            className="px-4 py-2 rounded bg-gray-800 text-white text-sm font-medium hover:bg-gray-700 disabled:opacity-50"
+          >
+            {tableLoading ? "Loading…" : "Load table"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (tableRows.length === 0) return;
+              const header = "Flavor,Batch Code,Type,Week,Date added\n";
+              const escape = (s: string) => (s.includes(",") || s.includes('"') ? `"${String(s).replace(/"/g, '""')}"` : s);
+              const typeLabel = (v: string) => ENTRY_TYPES.find((t) => t.value === v)?.label ?? v;
+              const rows = tableRows.map(
+                (r) =>
+                  `${escape(products.find((p) => p.id === r.catalog_item_id)?.name ?? r.catalog_item_id)},${escape(r.code)},${escape(typeLabel(r.entry_type))},${escape(r.week_start_date)},${escape(new Date(r.scanned_at).toLocaleString())}`
+              );
+              const csv = header + rows.join("\n");
+              const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+              const a = document.createElement("a");
+              a.href = URL.createObjectURL(blob);
+              a.download = `batch-codes-${tableWeek || "all"}-${new Date().toISOString().slice(0, 10)}.csv`;
+              a.click();
+              URL.revokeObjectURL(a.href);
+            }}
+            disabled={tableRows.length === 0}
+            className="px-4 py-2 rounded border-2 border-[var(--millies-pink)] text-[var(--millies-pink)] text-sm font-medium hover:bg-pink-50 disabled:opacity-50 disabled:border-gray-300 disabled:text-gray-400"
+          >
+            Download CSV (for Google Sheets)
+          </button>
+        </div>
+        {tableRows.length > 0 && (
+          <div className="overflow-x-auto rounded border border-gray-200 max-h-[400px] overflow-y-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-50 sticky top-0">
+                <tr>
+                  <th className="px-3 py-2 font-medium">Flavor</th>
+                  <th className="px-3 py-2 font-medium">Batch code</th>
+                  <th className="px-3 py-2 font-medium">Type</th>
+                  <th className="px-3 py-2 font-medium">Week</th>
+                  <th className="px-3 py-2 font-medium">Date added</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tableRows.map((r) => (
+                  <tr key={r.id} className="border-b border-gray-100">
+                    <td className="px-3 py-2">{products.find((p) => p.id === r.catalog_item_id)?.name ?? r.catalog_item_id}</td>
+                    <td className="px-3 py-2 font-mono">{r.code}</td>
+                    <td className="px-3 py-2">{ENTRY_TYPES.find((t) => t.value === r.entry_type)?.label ?? r.entry_type}</td>
+                    <td className="px-3 py-2">{r.week_start_date}</td>
+                    <td className="px-3 py-2 text-gray-600">{new Date(r.scanned_at).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {showScanner && (
         <BatchCodeScanner

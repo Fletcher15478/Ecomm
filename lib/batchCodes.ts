@@ -5,6 +5,8 @@
 
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 
+export type BatchCodeEntryType = "new_case" | "no_new_case" | "loosie" | "special";
+
 export interface BatchCodeRow {
   id: string;
   catalog_item_id: string;
@@ -12,6 +14,7 @@ export interface BatchCodeRow {
   week_start_date: string;
   scanned_at: string;
   created_at: string;
+  entry_type: BatchCodeEntryType;
 }
 
 /** Get the Wednesday that starts the current batch week (Wed–Tue). Returns YYYY-MM-DD. */
@@ -90,7 +93,8 @@ export async function listWeeksForProduct(
 export async function insertBatchCodes(
   catalogItemId: string,
   codes: string[],
-  weekStartDate?: string
+  weekStartDate?: string,
+  entryType: BatchCodeEntryType = "loosie"
 ): Promise<{ ok: boolean; error?: string; inserted: number }> {
   const supabase = createSupabaseAdmin();
   const normalized = codes
@@ -105,6 +109,7 @@ export async function insertBatchCodes(
     catalog_item_id: catalogItemId,
     code,
     week_start_date: week,
+    entry_type: entryType,
   }));
   const { data, error } = await supabase
     .from("product_batch_codes")
@@ -115,4 +120,22 @@ export async function insertBatchCodes(
     return { ok: false, error: error.message, inserted: 0 };
   }
   return { ok: true, inserted: data?.length ?? 0 };
+}
+
+/** List all batch codes (for table view). Optional filter by week. Newest first. */
+export async function listAllBatchCodes(weekStartDate?: string): Promise<BatchCodeRow[]> {
+  const supabase = createSupabaseAdmin();
+  let q = supabase
+    .from("product_batch_codes")
+    .select("*")
+    .order("scanned_at", { ascending: false });
+  if (weekStartDate) {
+    q = q.eq("week_start_date", weekStartDate);
+  }
+  const { data, error } = await q;
+  if (error) {
+    console.error("[batchCodes] listAllBatchCodes error:", error);
+    return [];
+  }
+  return (data ?? []) as BatchCodeRow[];
 }

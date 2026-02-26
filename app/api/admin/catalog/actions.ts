@@ -9,7 +9,7 @@ import { ensureSetting } from "@/lib/storeProductSettings";
 import { saveCarouselOverride, deleteCarouselOverride } from "@/lib/productCarouselOverrides";
 import { setProductFlavors } from "@/lib/productFlavorOptions";
 import { deleteAllSizeOptionsForVariation } from "@/lib/productSizeOptions";
-import { insertBatchCodes, getBatchCodesForProductAndWeek, listWeeksForProduct, getWeekStartWednesday, formatWeekLabel } from "@/lib/batchCodes";
+import { insertBatchCodes, getBatchCodesForProductAndWeek, listWeeksForProduct, listAllBatchCodes, getWeekStartWednesday, formatWeekLabel, type BatchCodeEntryType } from "@/lib/batchCodes";
 import { insertAuditLog } from "@/lib/auditLog";
 
 export async function getAdminCatalog(): Promise<Array<{
@@ -304,11 +304,13 @@ export type SubmitBatchCodesResult =
 
 export async function submitBatchCodesAction(
   catalogItemId: string,
-  codes: string[]
+  codes: string[],
+  entryType: BatchCodeEntryType = "loosie",
+  weekStartDate?: string
 ): Promise<SubmitBatchCodesResult> {
   const session = await getAdminSession();
   if (!session) return { success: false, error: "Unauthorized" };
-  const result = await insertBatchCodes(catalogItemId, codes);
+  const result = await insertBatchCodes(catalogItemId, codes, weekStartDate, entryType);
   if (!result.ok) return { success: false, error: result.error ?? "Failed to save" };
   return { success: true, inserted: result.inserted };
 }
@@ -334,7 +336,24 @@ export async function getBatchCodesByWeekAction(
     listWeeksForProduct(catalogItemId),
   ]);
   return {
-    codes: codes.map((r) => ({ id: r.id, code: r.code, scanned_at: r.scanned_at })),
+    codes: codes.map((r) => ({ id: r.id, code: r.code, scanned_at: r.scanned_at, entry_type: r.entry_type })),
     weeks: weekDates.map((w) => ({ weekStartDate: w, label: formatWeekLabel(w) })),
   };
+}
+
+/** Get all batch codes for table view (optionally filter by week). */
+export async function getAllBatchCodesForTableAction(weekStartDate?: string): Promise<
+  Array<{ id: string; catalog_item_id: string; code: string; week_start_date: string; scanned_at: string; entry_type: string }>
+> {
+  const session = await getAdminSession();
+  if (!session) return [];
+  const rows = await listAllBatchCodes(weekStartDate);
+  return rows.map((r) => ({
+    id: r.id,
+    catalog_item_id: r.catalog_item_id,
+    code: r.code,
+    week_start_date: r.week_start_date,
+    scanned_at: r.scanned_at,
+    entry_type: r.entry_type,
+  }));
 }
