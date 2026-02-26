@@ -326,7 +326,7 @@ export async function getBatchCodesByWeekAction(
   catalogItemId: string,
   weekStartDate: string
 ): Promise<{
-  codes: Array<{ id: string; code: string; scanned_at: string }>;
+  codes: Array<{ id: string; code: string; scanned_at: string; entry_type: string }>;
   weeks: Array<{ weekStartDate: string; label: string }>;
 }> {
   const session = await getAdminSession();
