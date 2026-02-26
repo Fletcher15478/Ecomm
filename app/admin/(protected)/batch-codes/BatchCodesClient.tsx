@@ -51,14 +51,18 @@ export function BatchCodesClient({
   thisWeekLabel: string;
 }) {
   const [selectedId, setSelectedId] = useState(products[0]?.id ?? "");
+  const [entryType, setEntryType] = useState<EntryTypeValue>("loosie");
   const [weekStart, setWeekStart] = useState(thisWeekStart);
   const [codes, setCodes] = useState<string[]>([]);
-  const [storedCodes, setStoredCodes] = useState<Array<{ id: string; code: string; scanned_at: string }>>([]);
+  const [storedCodes, setStoredCodes] = useState<Array<{ id: string; code: string; scanned_at: string; entry_type: string }>>([]);
   const [weekOptions, setWeekOptions] = useState<Array<{ weekStartDate: string; label: string }>>([]);
   const [manualInput, setManualInput] = useState("");
   const [showScanner, setShowScanner] = useState(false);
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [tableWeek, setTableWeek] = useState("");
+  const [tableRows, setTableRows] = useState<Array<{ id: string; catalog_item_id: string; code: string; week_start_date: string; scanned_at: string; entry_type: string }>>([]);
+  const [tableLoading, setTableLoading] = useState(false);
   const isThisWeek = weekStart === thisWeekStart;
 
   useEffect(() => {
