@@ -33,13 +33,20 @@ export function formatWeekLabel(weekStartDate: string): string {
   return `${fmt(wed)} – ${fmt(tue)}`;
 }
 
-/** Normalize batch code: trim, allow format XX-XXX (2 digits, dash, 3 digits). */
+/** Normalize batch code: trim, allow XX-XXX (alphanumeric, e.g. 2B-050 or 26-037). Strips BESTBY/date if pasted. */
 export function normalizeBatchCode(input: string): string | null {
-  const trimmed = input.trim().toUpperCase();
+  const trimmed = input.trim().toUpperCase().replace(/\s+/g, " ");
   if (!trimmed) return null;
-  // Allow 26-037, 25-034 style; optionally strip extra chars
-  const match = trimmed.match(/^(\d{2}-\d{3})/);
-  return match ? match[1] : trimmed.length <= 10 ? trimmed : trimmed.slice(0, 10);
+  const match = trimmed.match(/^([A-Z0-9]{2,3}-[A-Z0-9]{2,4})/);
+  if (match) return match[1];
+  const beforeBestBy = trimmed.split(/BESTBY/i)[0].trim();
+  if (beforeBestBy) {
+    const m = beforeBestBy.match(/([A-Z0-9]{2,3}-[A-Z0-9]{2,4})/);
+    if (m) return m[1];
+    if (beforeBestBy.length <= 10) return beforeBestBy;
+    return beforeBestBy.slice(0, 10);
+  }
+  return trimmed.length <= 10 ? trimmed : trimmed.slice(0, 10);
 }
 
 /** List batch codes for a catalog item and week (week_start_date = YYYY-MM-DD). */

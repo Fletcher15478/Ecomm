@@ -12,11 +12,22 @@ const BatchCodeScanner = dynamic(
   { ssr: false }
 );
 
+/** Extract batch code from lid text (e.g. "2B-050" from "2B-050BESTBY02/20/2027"). Format: XX-XXX (alphanumeric). */
 function normalizeBatchCode(input: string): string | null {
-  const trimmed = input.trim().toUpperCase();
+  const trimmed = input.trim().toUpperCase().replace(/\s+/g, " ");
   if (!trimmed) return null;
-  const match = trimmed.match(/^(\d{2}-\d{3})/);
-  return match ? match[1] : trimmed.length <= 10 ? trimmed : trimmed.slice(0, 10);
+  // Match batch segment: 2–3 chars, dash, 2–4 chars (e.g. 2B-050, 26-037)
+  const match = trimmed.match(/^([A-Z0-9]{2,3}-[A-Z0-9]{2,4})/);
+  if (match) return match[1];
+  // If they pasted full line, take part before BESTBY
+  const beforeBestBy = trimmed.split(/BESTBY/i)[0].trim();
+  if (beforeBestBy) {
+    const m = beforeBestBy.match(/([A-Z0-9]{2,3}-[A-Z0-9]{2,4})/);
+    if (m) return m[1];
+    if (beforeBestBy.length <= 10) return beforeBestBy;
+    return beforeBestBy.slice(0, 10);
+  }
+  return trimmed.length <= 10 ? trimmed : trimmed.slice(0, 10);
 }
 
 type ProductOption = { id: string; name: string };
@@ -103,7 +114,7 @@ export function BatchCodesClient({
         Batch codes
       </h1>
       <p className="text-gray-600 text-sm">
-        Batches reset every <strong>Wednesday</strong>. Select a pint flavor and week, then add codes by scanning or typing. This week&apos;s codes are below.
+        Batches reset every <strong>Wednesday</strong>. Codes on pint lids are <strong>printed text</strong> (e.g. 2B-050BESTBY02/20/2027), not a barcode — type or paste the code below. You can paste the full line; the batch part (e.g. 2B-050) is extracted.
       </p>
 
       <div>
@@ -162,18 +173,11 @@ export function BatchCodesClient({
       )}
 
       {isThisWeek && (
-        <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            type="button"
-            onClick={() => setShowScanner(true)}
-            className="px-4 py-3 rounded-lg border-2 border-[var(--millies-pink)] text-[var(--millies-pink)] font-medium hover:bg-pink-50 transition-colors"
-          >
-            Scan with camera
-          </button>
-          <div className="flex-1 flex gap-2">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-1 gap-2">
             <input
               type="text"
-              placeholder="e.g. 26-037 or paste multiple"
+              placeholder="e.g. 2B-050 or paste full line (2B-050BESTBY02/20/2027)"
               value={manualInput}
               onChange={(e) => setManualInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleManualAdd())}
@@ -183,11 +187,21 @@ export function BatchCodesClient({
             <button
               type="button"
               onClick={handleManualAdd}
-              className="px-4 py-2 rounded bg-gray-800 text-white font-medium hover:bg-gray-700 disabled:opacity-50"
+              className="px-4 py-2 rounded bg-gray-800 text-white font-medium hover:bg-gray-700 disabled:opacity-50 shrink-0"
             >
               Add
             </button>
           </div>
+          <p className="text-xs text-gray-500">
+            One code per line or comma-separated. Camera scan is for barcode labels only; pint lids use the manual field above.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowScanner(true)}
+            className="self-start px-3 py-2 rounded border border-gray-300 text-gray-600 text-sm hover:bg-gray-50"
+          >
+            Scan barcode (if applicable)
+          </button>
         </div>
       )}
 
