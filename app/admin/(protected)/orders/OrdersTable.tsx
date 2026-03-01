@@ -75,9 +75,8 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
           {(orders ?? []).map((o) => {
             const isExpanded = expandedId === o.id;
             return (
-              <>
+              <Fragment key={o.id}>
                 <tr
-                  key={o.id}
                   role="button"
                   tabIndex={0}
                   onClick={() => setExpandedId(isExpanded ? null : o.id)}
