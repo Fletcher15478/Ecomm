@@ -192,6 +192,20 @@ export async function POST(request: NextRequest) {
     const paymentId = payment?.id ?? null;
     const paymentStatus = payment?.status;
 
+    const customerName = shippingAddress
+      ? [shippingAddress.firstName, shippingAddress.lastName].filter(Boolean).join(" ").trim() || null
+      : null;
+    const shippingAddressJson = shippingAddress
+      ? {
+          firstName: shippingAddress.firstName ?? null,
+          lastName: shippingAddress.lastName ?? null,
+          addressLine1: shippingAddress.addressLine1 ?? null,
+          locality: shippingAddress.locality ?? null,
+          administrativeDistrictLevel1: shippingAddress.administrativeDistrictLevel1 ?? null,
+          postalCode: shippingAddress.postalCode ?? null,
+        }
+      : null;
+
     if (paymentStatus !== "COMPLETED" && paymentStatus !== "APPROVED") {
       await supabase.from("order_metadata").insert({
         square_order_id: orderId,
@@ -203,6 +217,9 @@ export async function POST(request: NextRequest) {
         amount_total_cents: totalCents,
         currency,
         status: "payment_failed",
+        customer_name: customerName,
+        shipping_address: shippingAddressJson,
+        order_note: orderNote?.trim() || null,
       });
 
       const declineReason = createPaymentResponse.result.errors?.map((e) => e.detail).join("; ");
@@ -230,6 +247,9 @@ export async function POST(request: NextRequest) {
         amount_total_cents: totalCents,
         currency,
         status: "completed",
+        customer_name: customerName,
+        shipping_address: shippingAddressJson,
+        order_note: orderNote?.trim() || null,
       })
       .select("id")
       .single();
