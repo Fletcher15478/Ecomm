@@ -18,9 +18,9 @@ export function ProductGrid({ items }: { items: CatalogItemDisplay[] }) {
       {items.map((item) => (
         <li
           key={item.variationId}
-          className="rounded-xl overflow-hidden bg-white border border-[var(--millies-pink)]/40 shadow-sm hover:shadow-md hover:border-[var(--millies-pink)] transition-all duration-200 max-w-[280px] mx-auto sm:mx-0 sm:max-w-none"
+          className="rounded-xl overflow-hidden bg-white border border-[var(--millies-pink)]/40 shadow-sm hover:shadow-md hover:border-[var(--millies-pink)] transition-all duration-200 max-w-[280px] mx-auto sm:mx-0 sm:max-w-none h-full flex flex-col"
         >
-          <Link href={`/products/${item.id}`} className="block group">
+          <Link href={`/products/${item.id}`} className="block group flex flex-col h-full">
             <div className="h-28 sm:h-32 bg-gray-50 relative flex items-center justify-center">
               {(item.isFeatured || item.isSeasonal) && (
                 <div className="absolute left-2 top-2 z-20 flex gap-1.5">
@@ -72,7 +72,7 @@ export function ProductGrid({ items }: { items: CatalogItemDisplay[] }) {
                 </div>
               )}
             </div>
-            <div className="p-3 sm:p-4">
+            <div className="p-3 sm:p-4 flex flex-col flex-1 min-h-[110px]">
               <div
                 className="font-semibold text-gray-900 group-hover:text-[var(--millies-pink)] transition-colors text-sm uppercase tracking-wide"
                 style={{ fontFamily: "var(--font-program-narrow)" }}
@@ -88,7 +88,7 @@ export function ProductGrid({ items }: { items: CatalogItemDisplay[] }) {
                 </p>
               )}
               <div
-                className="mt-2 font-semibold text-sm text-[var(--millies-pink)]"
+                className="mt-2 sm:mt-3 font-semibold text-sm text-[var(--millies-pink)] sm:mt-auto"
                 style={{ fontFamily: "var(--font-program-narrow)" }}
               >
                 {formatMoney(item.priceCents, item.currency)}
