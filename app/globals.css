@@ -8,7 +8,7 @@
 :root {
   --millies-pink: #ef4b81;
   --millies-pink-hover: #ef4c81;
-  --store-banner-height: 82px;
+  --store-banner-height: 100px;
 }
 
 /* Default body font: Poppins (use var(--font-poppins) in components) */
@@ -16,7 +16,7 @@ body {
   font-family: var(--font-poppins), system-ui, sans-serif;
 }
 
-/* St. Patrick's Day store banner – below navbar (shop-hero styling) */
+/* Store promo banner – Millie's pink, below navbar */
 .store-banner {
   position: fixed;
   top: 70px;
@@ -24,16 +24,28 @@ body {
   right: 0;
   z-index: 40;
   min-height: var(--store-banner-height);
-  padding: 14px 0;
-  background-color: #0d7a3d;
-  background-image: url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.18'%3E%3Ccircle cx='60' cy='38' r='18'/%3E%3Ccircle cx='40' cy='62' r='18'/%3E%3Ccircle cx='80' cy='62' r='18'/%3E%3Crect x='56' y='68' width='8' height='22' rx='4'/%3E%3C/g%3E%3C/svg%3E"), linear-gradient(165deg, #118044 0%, #0d7a3d 45%, #0a6b34 100%);
+  padding: 16px 0;
+  background-color: var(--millies-pink);
+  /* Soft sprinkle dots + warm pink gradient */
+  background-image: url("data:image/svg+xml,%3Csvg width='64' height='64' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='20' r='2.5' fill='%23ffffff' fill-opacity='0.14'/%3E%3Ccircle cx='44' cy='8' r='2' fill='%23ffffff' fill-opacity='0.1'/%3E%3Ccircle cx='52' cy='36' r='3' fill='%23ffffff' fill-opacity='0.12'/%3E%3Ccircle cx='28' cy='48' r='2' fill='%23ffffff' fill-opacity='0.11'/%3E%3Ccircle cx='8' cy='52' r='2.5' fill='%23ffffff' fill-opacity='0.09'/%3E%3C/svg%3E"),
+    linear-gradient(
+      160deg,
+      #ff7aa8 0%,
+      var(--millies-pink) 38%,
+      #e63d72 72%,
+      #d43568 100%
+    );
   background-repeat: repeat, no-repeat;
-  background-size: 120px 120px, 100% 100%;
+  background-size: 64px 64px, 100% 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-program-narrow), sans-serif;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 4px 20px rgba(239, 75, 129, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 .store-banner-inner {
   max-width: 1600px;
@@ -47,25 +59,56 @@ body {
 .store-banner-line {
   margin: 0;
   color: #ffffff !important;
-  font-weight: 900;
-  line-height: 1.15;
-  letter-spacing: 1.5px;
-  font-size: 1.35rem;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  font-size: 1.2rem;
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.12),
+    0 2px 12px rgba(0, 0, 0, 0.15);
 }
 .store-banner-line:first-child {
-  margin-bottom: 3px;
+  margin-bottom: 0;
+}
+.store-banner-line-secondary {
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.18em;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+.store-banner-divider {
+  display: block;
+  width: 42px;
+  height: 2px;
+  margin: 8px auto 10px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  border-radius: 999px;
 }
 @media (min-width: 640px) {
   .store-banner-line {
-    font-size: 1.75rem;
-    letter-spacing: 2px;
+    font-size: 1.65rem;
+    letter-spacing: 0.1em;
+  }
+  .store-banner-line-secondary {
+    font-size: 1.2rem;
+    letter-spacing: 0.16em;
+  }
+  .store-banner-divider {
+    width: 56px;
+    margin: 10px auto 12px;
   }
 }
 @media (min-width: 1024px) {
   .store-banner-line {
-    font-size: 2.25rem;
-    letter-spacing: 2.5px;
+    font-size: 2rem;
+    letter-spacing: 0.08em;
+  }
+  .store-banner-line-secondary {
+    font-size: 1.45rem;
+    letter-spacing: 0.14em;
+  }
+  .store-banner-divider {
+    width: 72px;
   }
 }
 
