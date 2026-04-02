@@ -64,44 +64,53 @@ export async function listCatalogItems(): Promise<CatalogItemForCart[]> {
   const list: CatalogItemForCart[] = [];
   let cursor: string | undefined;
 
-  do {
-    const response = await client.catalogApi.listCatalog(undefined, cursor);
-    const objects = response.result.objects ?? [];
+  try {
+    do {
+      const response = await client.catalogApi.listCatalog(undefined, cursor);
+      const objects = response.result.objects ?? [];
 
-    for (const obj of objects) {
-      if (obj.type !== "ITEM" || !obj.itemData?.variations) continue;
+      for (const obj of objects) {
+        if (obj.type !== "ITEM" || !obj.itemData?.variations) continue;
 
-      const itemName = obj.itemData.name ?? "Unnamed";
-      const description =
-        (obj.itemData as { description?: string; descriptionPlaintext?: string }).description?.trim() ||
-        (obj.itemData as { description?: string; descriptionPlaintext?: string }).descriptionPlaintext?.trim() ||
-        null;
-      const customAttrs = "customAttributeValues" in obj ? (obj as { customAttributeValues?: Record<string, { stringValue?: string }> }).customAttributeValues : undefined;
-      const isFrozen = customAttrs?.[FROZEN_ATTR_KEY]?.stringValue?.toLowerCase() === "true";
-      const productType = parseProductType(customAttrs?.[PRODUCT_TYPE_ATTR_KEY]?.stringValue);
+        const itemName = obj.itemData.name ?? "Unnamed";
+        const description =
+          (obj.itemData as { description?: string; descriptionPlaintext?: string }).description?.trim() ||
+          (obj.itemData as { description?: string; descriptionPlaintext?: string }).descriptionPlaintext?.trim() ||
+          null;
+        const customAttrs = "customAttributeValues" in obj ? (obj as { customAttributeValues?: Record<string, { stringValue?: string }> }).customAttributeValues : undefined;
+        const isFrozen = customAttrs?.[FROZEN_ATTR_KEY]?.stringValue?.toLowerCase() === "true";
+        const productType = parseProductType(customAttrs?.[PRODUCT_TYPE_ATTR_KEY]?.stringValue);
 
-      for (const v of obj.itemData.variations) {
-        if (v.type !== "ITEM_VARIATION" || !v.id) continue;
-        const price = v.itemVariationData?.priceMoney;
-        if (!price?.amount) continue;
+        for (const v of obj.itemData.variations) {
+          if (v.type !== "ITEM_VARIATION" || !v.id) continue;
+          const price = v.itemVariationData?.priceMoney;
+          if (!price?.amount) continue;
 
-        list.push({
-          id: obj.id ?? "",
-          name: itemName,
-          description: description || undefined,
-          variationId: v.id,
-          priceMoney: {
-            amount: BigInt(price.amount),
-            currency: price.currency ?? "USD",
-          },
-          isFrozen,
-          productType,
-        });
+          list.push({
+            id: obj.id ?? "",
+            name: itemName,
+            description: description || undefined,
+            variationId: v.id,
+            priceMoney: {
+              amount: BigInt(price.amount),
+              currency: price.currency ?? "USD",
+            },
+            isFrozen,
+            productType,
+          });
+        }
       }
-    }
 
-    cursor = response.result.cursor ?? undefined;
-  } while (cursor);
+      cursor = response.result.cursor ?? undefined;
+    } while (cursor);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(
+      "[Square] listCatalogItems failed (store will show empty until fixed):",
+      msg
+    );
+    return [];
+  }
 
   return list;
 }
