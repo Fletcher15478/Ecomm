@@ -66,7 +66,8 @@ export async function listCatalogItems(): Promise<CatalogItemForCart[]> {
 
   try {
     do {
-      const response = await client.catalogApi.listCatalog(undefined, cursor);
+      // Production can be stricter; explicitly request only ITEM objects.
+      const response = await client.catalogApi.listCatalog("ITEM", cursor);
       const objects = response.result.objects ?? [];
 
       for (const obj of objects) {
@@ -105,10 +106,19 @@ export async function listCatalogItems(): Promise<CatalogItemForCart[]> {
     } while (cursor);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.warn(
-      "[Square] listCatalogItems failed (store will show empty until fixed):",
-      msg
-    );
+    // Square SDK error shapes vary; log a few common fields without dumping secrets.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const e: any = err as any;
+    const statusCode = e?.statusCode ?? e?.response?.statusCode;
+    const errors = e?.result?.errors ?? e?.errors;
+    const body = e?.body ?? e?.response?.body;
+
+    console.warn("[Square] listCatalogItems failed (store will show empty until fixed):", {
+      message: msg,
+      statusCode,
+      errors,
+      body,
+    });
     return [];
   }
 
