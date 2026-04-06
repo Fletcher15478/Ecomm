@@ -388,7 +388,7 @@ export function CheckoutForm({
           />
         </div>
         <div className="mt-4">
-          <label className={labelClass}>Which shop referred you *</label>
+          <label className={labelClass}>How did you hear about us? *</label>
           <select
             value={billing.referralShop}
             onChange={(e) => setBilling((b) => ({ ...b, referralShop: e.target.value }))}
