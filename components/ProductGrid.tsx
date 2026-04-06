@@ -14,14 +14,14 @@ export function ProductGrid({ items }: { items: CatalogItemDisplay[] }) {
     return <p className="text-gray-500">No products available.</p>;
   }
   return (
-    <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+    <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 sm:items-stretch">
       {items.map((item) => (
         <li
           key={item.variationId}
-          className="rounded-xl overflow-hidden bg-white border border-[var(--millies-pink)]/40 shadow-sm hover:shadow-md hover:border-[var(--millies-pink)] transition-all duration-200 max-w-[280px] mx-auto sm:mx-0 sm:max-w-none h-full flex flex-col"
+          className="w-full rounded-xl overflow-hidden bg-white border border-[var(--millies-pink)]/40 shadow-sm hover:shadow-md hover:border-[var(--millies-pink)] transition-all duration-200 h-full flex flex-col min-h-[300px] sm:min-h-0"
         >
-          <Link href={`/products/${item.id}`} className="block group flex flex-col h-full">
-            <div className="h-28 sm:h-32 bg-gray-50 relative flex items-center justify-center">
+          <Link href={`/products/${item.id}`} className="flex flex-col h-full min-h-0 group">
+            <div className="h-36 sm:h-32 shrink-0 bg-gray-50 relative flex items-center justify-center">
               {(item.isFeatured || item.isSeasonal) && (
                 <div className="absolute left-2 top-2 z-20 flex gap-1.5">
                   {item.isFeatured && (
@@ -72,23 +72,21 @@ export function ProductGrid({ items }: { items: CatalogItemDisplay[] }) {
                 </div>
               )}
             </div>
-            <div className="p-3 sm:p-4 flex flex-col flex-1 min-h-[110px]">
+            <div className="p-3 sm:p-4 flex flex-col flex-1 min-h-0">
               <div
-                className="font-semibold text-gray-900 group-hover:text-[var(--millies-pink)] transition-colors text-sm uppercase tracking-wide"
+                className="font-semibold text-gray-900 group-hover:text-[var(--millies-pink)] transition-colors text-sm uppercase tracking-wide line-clamp-2 min-h-[2.5rem]"
                 style={{ fontFamily: "var(--font-program-narrow)" }}
               >
                 {item.name}
               </div>
-              {item.description && (
-                <p
-                  className="text-xs text-gray-600 mt-1 line-clamp-2"
-                  style={{ fontFamily: "var(--font-program-narrow)" }}
-                >
-                  {item.description}
-                </p>
-              )}
+              <p
+                className="text-xs text-gray-600 mt-1 line-clamp-2 min-h-[2.5rem] flex-shrink-0"
+                style={{ fontFamily: "var(--font-program-narrow)" }}
+              >
+                {item.description || "\u00a0"}
+              </p>
               <div
-                className="mt-2 sm:mt-3 font-semibold text-sm text-[var(--millies-pink)] sm:mt-auto"
+                className="mt-auto pt-3 font-semibold text-sm text-[var(--millies-pink)]"
                 style={{ fontFamily: "var(--font-program-narrow)" }}
               >
                 {formatMoney(item.priceCents, item.currency)}
