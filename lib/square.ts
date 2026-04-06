@@ -67,7 +67,7 @@ export async function listCatalogItems(): Promise<CatalogItemForCart[]> {
   try {
     do {
       // Production can be stricter; explicitly request only ITEM objects.
-      const response = await client.catalogApi.listCatalog("ITEM", cursor);
+      const response = await client.catalogApi.listCatalog(cursor, "ITEM");
       const objects = response.result.objects ?? [];
 
       for (const obj of objects) {
