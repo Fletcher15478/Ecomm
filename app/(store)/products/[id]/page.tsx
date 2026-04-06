@@ -9,6 +9,7 @@ import { getInStockSizesForVariation } from "@/lib/productSizeOptions";
 import { getCarouselOverride } from "@/lib/productCarouselOverrides";
 import { ProductDetailClient } from "./ProductDetailClient";
 import { ProductImageCarousel } from "./ProductImageCarousel";
+import { getAllowedStoreItemNames } from "@/app/products/catalog";
 
 export const revalidate = 15;
 
@@ -20,6 +21,11 @@ export default async function ProductDetailPage({
   const { id } = await params;
   const item = await getCatalogItemDetail(id);
   if (!item) notFound();
+  const allowed = getAllowedStoreItemNames();
+  if (allowed) {
+    const norm = item.name.trim().toLowerCase().replace(/\s+/g, " ");
+    if (!allowed.has(norm)) notFound();
+  }
 
   const settingsMap = await getStoreProductSettings();
   const setting = settingsMap.get(item.variationId);

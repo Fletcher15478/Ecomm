@@ -2,6 +2,28 @@ import { listCatalogItems, getCatalogItemImageUrls, type ProductType } from "@/l
 import { isMerchProduct } from "@/lib/productContent";
 import { getStoreProductSettings } from "@/lib/storeProductSettings";
 
+function normalizeName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/**
+ * If set, only show items whose Square name matches (case-insensitive) one of these.
+ * Comma-separated list.
+ *
+ * Example:
+ * STORE_ALLOWED_ITEM_NAMES="Best Sellers Collection, Build Your Own 4 Pack"
+ */
+export function getAllowedStoreItemNames(): Set<string> | null {
+  const raw = process.env.STORE_ALLOWED_ITEM_NAMES?.trim();
+  if (!raw) return null;
+  const names = raw
+    .split(",")
+    .map((s) => normalizeName(s))
+    .filter(Boolean);
+  if (names.length === 0) return null;
+  return new Set(names);
+}
+
 export interface CatalogItemDisplay {
   id: string;
   name: string;
@@ -26,11 +48,16 @@ export interface CatalogItemDisplay {
  */
 export async function getCatalogItems(): Promise<CatalogItemDisplay[]> {
   const items = await listCatalogItems();
-  const uniqueIds = Array.from(new Set(items.map((i) => i.id)));
+  const allowed = getAllowedStoreItemNames();
+  const visibleSquareItems = allowed
+    ? items.filter((i) => allowed.has(normalizeName(i.name)))
+    : items;
+
+  const uniqueIds = Array.from(new Set(visibleSquareItems.map((i) => i.id)));
   const imageMap = await getCatalogItemImageUrls(uniqueIds);
   const settingsMap = await getStoreProductSettings();
 
-  const merged: (CatalogItemDisplay & { _displayOrder: number; _hidden: boolean })[] = items.map((item) => {
+  const merged: (CatalogItemDisplay & { _displayOrder: number; _hidden: boolean })[] = visibleSquareItems.map((item) => {
     const setting = settingsMap.get(item.variationId);
     const displayOrder = setting?.display_order ?? 999999;
     const hidden = setting?.hidden ?? false;
