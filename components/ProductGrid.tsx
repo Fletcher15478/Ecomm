@@ -18,10 +18,10 @@ export function ProductGrid({ items }: { items: CatalogItemDisplay[] }) {
       {items.map((item) => (
         <li
           key={item.variationId}
-          className="w-full rounded-xl overflow-hidden bg-white border border-[var(--millies-pink)]/40 shadow-sm hover:shadow-md hover:border-[var(--millies-pink)] transition-all duration-200 h-full flex flex-col min-h-[300px] sm:min-h-0"
+          className="w-full rounded-xl overflow-hidden bg-white border border-[var(--millies-pink)]/40 shadow-sm hover:shadow-md hover:border-[var(--millies-pink)] transition-all duration-200 h-full flex flex-col"
         >
           <Link href={`/products/${item.id}`} className="flex flex-col h-full min-h-0 group">
-            <div className="h-36 sm:h-32 shrink-0 bg-gray-50 relative flex items-center justify-center">
+            <div className="h-44 sm:h-40 shrink-0 bg-gray-50 relative flex items-center justify-center">
               {(item.isFeatured || item.isSeasonal) && (
                 <div className="absolute left-2 top-2 z-20 flex gap-1.5">
                   {item.isFeatured && (
@@ -63,7 +63,7 @@ export function ProductGrid({ items }: { items: CatalogItemDisplay[] }) {
                   alt={item.name}
                   fill
                   className="object-contain p-3 group-hover:scale-[1.02] transition-transform duration-200"
-                  sizes="(max-width: 640px) 160px, (max-width: 1024px) 200px, 220px"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                   unoptimized
                 />
               ) : (
@@ -72,19 +72,21 @@ export function ProductGrid({ items }: { items: CatalogItemDisplay[] }) {
                 </div>
               )}
             </div>
-            <div className="p-3 sm:p-4 flex flex-col flex-1 min-h-0">
+            <div className="p-4 sm:p-5 flex flex-col flex-1 min-h-0 gap-1">
               <div
-                className="font-semibold text-gray-900 group-hover:text-[var(--millies-pink)] transition-colors text-sm uppercase tracking-wide line-clamp-2 min-h-[2.5rem]"
+                className="font-semibold text-gray-900 group-hover:text-[var(--millies-pink)] transition-colors text-base sm:text-sm uppercase tracking-wide leading-snug"
                 style={{ fontFamily: "var(--font-program-narrow)" }}
               >
                 {item.name}
               </div>
-              <p
-                className="text-xs text-gray-600 mt-1 line-clamp-2 min-h-[2.5rem] flex-shrink-0"
-                style={{ fontFamily: "var(--font-program-narrow)" }}
-              >
-                {item.description || "\u00a0"}
-              </p>
+              {item.description ? (
+                <p
+                  className="text-sm text-gray-600 mt-1 leading-relaxed flex-shrink-0"
+                  style={{ fontFamily: "var(--font-program-narrow)" }}
+                >
+                  {item.description}
+                </p>
+              ) : null}
               <div
                 className="mt-auto pt-3 font-semibold text-sm text-[var(--millies-pink)]"
                 style={{ fontFamily: "var(--font-program-narrow)" }}
