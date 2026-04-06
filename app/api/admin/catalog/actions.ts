@@ -11,6 +11,7 @@ import { setProductFlavors } from "@/lib/productFlavorOptions";
 import { deleteAllSizeOptionsForVariation } from "@/lib/productSizeOptions";
 import { insertBatchCodes, getBatchCodesForProductAndWeek, listWeeksForProduct, listAllBatchCodes, getWeekStartWednesday, formatWeekLabel, type BatchCodeEntryType } from "@/lib/batchCodes";
 import { insertAuditLog } from "@/lib/auditLog";
+import { getAllowedStoreItemNames } from "@/app/products/catalog";
 
 export async function getAdminCatalog(): Promise<Array<{
   id: string;
@@ -24,7 +25,12 @@ export async function getAdminCatalog(): Promise<Array<{
   if (!session) return [];
 
   const items = await listCatalogItems();
-  return items.map((item) => ({
+  const allowed = getAllowedStoreItemNames();
+  const visible = allowed
+    ? items.filter((i) => allowed.has(i.name.trim().toLowerCase().replace(/\s+/g, " ")))
+    : items;
+
+  return visible.map((item) => ({
     id: item.id,
     name: item.name,
     variationId: item.variationId,
@@ -59,11 +65,15 @@ export async function getAdminCatalogWithSettings(): Promise<AdminCatalogItemWit
   if (!session) return [];
 
   const items = await listCatalogItems();
+  const allowed = getAllowedStoreItemNames();
+  const visibleItems = allowed
+    ? items.filter((i) => allowed.has(i.name.trim().toLowerCase().replace(/\s+/g, " ")))
+    : items;
   const settingsMap = await getStoreProductSettings();
-  const uniqueIds = Array.from(new Set(items.map((i) => i.id)));
+  const uniqueIds = Array.from(new Set(visibleItems.map((i) => i.id)));
   const imageMap = await getCatalogItemImageUrls(uniqueIds);
 
-  const merged = items.map((item, index) => {
+  const merged = visibleItems.map((item, index) => {
     const setting = settingsMap.get(item.variationId);
     const squareImage = imageMap.get(item.id) ?? null;
     const customImage = setting?.custom_image_url?.trim() || null;
