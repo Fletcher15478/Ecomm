@@ -47,6 +47,22 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.28);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
+
+/* Catalogue pages only: centered bar, sides “cut off” (page background shows) */
+.store-banner--catalog {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: min(calc(100vw - 1.5rem), 40rem);
+  max-width: 100%;
+  border-radius: 1.25rem;
+  border-bottom: none;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 4px 20px rgba(239, 75, 129, 0.28),
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
 .store-banner-inner {
   max-width: 1600px;
   margin: 0 auto;

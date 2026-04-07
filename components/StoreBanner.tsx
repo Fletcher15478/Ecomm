@@ -1,9 +1,10 @@
 import React from "react";
 
-export function StoreBanner() {
+/** When true (shop home + /products), banner is a centered capsule; otherwise full-width strip. */
+export function StoreBanner({ catalogLayout = false }: { catalogLayout?: boolean }) {
   return (
     <div
-      className="store-banner"
+      className={catalogLayout ? "store-banner store-banner--catalog" : "store-banner"}
       role="banner"
       aria-label="Promotional banner: All items in stock, we ship every Wednesday"
     >

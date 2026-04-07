@@ -9,5 +9,6 @@ export function StoreBannerWrapper() {
   const isProductDetail =
     pathname?.startsWith("/products/") && pathname !== "/products" && pathname.length > "/products/".length;
   if (isProductDetail) return null;
-  return <StoreBanner />;
+  const catalogLayout = pathname === "/" || pathname === "/products";
+  return <StoreBanner catalogLayout={catalogLayout} />;
 }
