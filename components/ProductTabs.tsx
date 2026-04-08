@@ -7,7 +7,7 @@ import type { ProductType } from "@/lib/square";
 
 const TABS: { id: ProductType; label: string; description: string }[] = [
   { id: "ice_cream", label: "Ice Cream", description: "Pints, 4-packs & more" },
-  { id: "merchandise", label: "Merchandise", description: "Apparel & gear" },
+  { id: "merchandise", label: "Merchandise", description: "Apparel + Gear" },
   { id: "gift_card", label: "Gift Cards", description: "Give the gift of Millie's" },
 ];
 
