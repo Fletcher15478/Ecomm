@@ -50,7 +50,7 @@ export function ProductImageCarousel({
               fill
               className="object-contain"
               sizes="(max-width: 768px) 100vw, (max-width: 1024px) 60vw, 50vw"
-              unoptimized={src.startsWith("http")}
+              unoptimized={src.startsWith("http") || src.toLowerCase().includes(".svg")}
               priority={i === 0}
             />
           </div>
