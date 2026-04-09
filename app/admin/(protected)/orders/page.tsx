@@ -2,6 +2,7 @@ import { getAdminSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import { OrdersTable } from "./OrdersTable";
+import { OrdersTestEmailButton } from "./OrdersTestEmailButton";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +19,14 @@ export default async function AdminOrdersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Orders</h1>
-      <p className="text-gray-600 text-sm mb-4">Click a row to see name, address, note, total, and shipping.</p>
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+        <h1 className="text-2xl font-bold">Orders</h1>
+        <OrdersTestEmailButton />
+      </div>
+      <p className="text-gray-600 text-sm mb-4">
+        Click a row to see name, address, note, total, and shipping. Use{" "}
+        <strong>Send test order email</strong> to verify confirmation mail (sent to your admin login email).
+      </p>
       <OrdersTable orders={orders ?? []} />
     </div>
   );

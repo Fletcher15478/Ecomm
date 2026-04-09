@@ -290,9 +290,60 @@ async function sendWithRetry(
   return { success: false, error: lastError };
 }
 
+async function sendOrderConfirmationViaResend(
+  params: SendOrderConfirmationParams,
+  html: string,
+  subject: string,
+  logoBuffer: Buffer | null
+): Promise<{ ok: boolean; error?: string }> {
+  if (!RESEND_API_KEY) {
+    return { ok: false, error: "RESEND_API_KEY not configured" };
+  }
+  const resend = new Resend(RESEND_API_KEY);
+  const result = await sendWithRetry(() =>
+    resend.emails.send({
+      from: EMAIL_FROM,
+      to: params.to,
+      replyTo: EMAIL_REPLY_TO ?? undefined,
+      subject,
+      html,
+      attachments: logoBuffer
+        ? [
+            {
+              content: logoBuffer,
+              filename: "millies-homemade-pink.png",
+              contentType: "image/png",
+              inlineContentId: "millies-logo",
+            },
+          ]
+        : undefined,
+    })
+  );
+  if (result.success) {
+    await logEmail(
+      params.to,
+      "order_confirmation",
+      "sent",
+      params.orderMetadataId ?? null,
+      result.messageId,
+      null
+    );
+    return { ok: true };
+  }
+  await logEmail(
+    params.to,
+    "order_confirmation",
+    "failed",
+    params.orderMetadataId ?? null,
+    null,
+    result.error
+  );
+  return { ok: false, error: result.error };
+}
+
 /**
  * Send order confirmation email. Server-side only. Logs to Supabase and retries on failure.
- * Uses Gmail SMTP if USE_SMTP_GMAIL is set, otherwise Resend.
+ * Tries Gmail SMTP first when configured; falls back to Resend if SMTP fails (so orders still confirm).
  */
 export async function sendOrderConfirmation(
   params: SendOrderConfirmationParams
@@ -316,8 +367,11 @@ export async function sendOrderConfirmation(
       await logEmail(params.to, "order_confirmation", "sent", params.orderMetadataId ?? null, "smtp", null);
       return { ok: true };
     }
-    await logEmail(params.to, "order_confirmation", "failed", params.orderMetadataId ?? null, null, result.error ?? null);
-    return { ok: false, error: result.error };
+    console.error("[Email] Order confirmation SMTP failed, trying Resend if configured:", result.error);
+    const fallback = await sendOrderConfirmationViaResend(params, html, subject, logoBuffer);
+    if (fallback.ok) return fallback;
+    console.error("[Email] Order confirmation Resend also failed:", fallback.error, "| SMTP was:", result.error);
+    return { ok: false, error: fallback.error ?? result.error };
   }
 
   if (!RESEND_API_KEY) {
@@ -327,54 +381,12 @@ export async function sendOrderConfirmation(
       "failed",
       params.orderMetadataId ?? null,
       null,
-      "RESEND_API_KEY not configured"
+      "RESEND_API_KEY not configured (and SMTP not configured)"
     );
     return { ok: false, error: "Email not configured" };
   }
 
-  const resend = new Resend(RESEND_API_KEY);
-
-  const result = await sendWithRetry(() =>
-    resend.emails.send({
-      from: EMAIL_FROM,
-      to: params.to,
-      replyTo: EMAIL_REPLY_TO ?? undefined,
-      subject,
-      html,
-      attachments: logoBuffer
-        ? [
-            {
-              content: logoBuffer,
-              filename: "millies-homemade-pink.png",
-              contentType: "image/png",
-              inlineContentId: "millies-logo",
-            },
-          ]
-        : undefined,
-    })
-  );
-
-  if (result.success) {
-    await logEmail(
-      params.to,
-      "order_confirmation",
-      "sent",
-      params.orderMetadataId ?? null,
-      result.messageId,
-      null
-    );
-    return { ok: true };
-  }
-
-  await logEmail(
-    params.to,
-    "order_confirmation",
-    "failed",
-    params.orderMetadataId ?? null,
-    null,
-    result.error
-  );
-  return { ok: false, error: result.error };
+  return sendOrderConfirmationViaResend(params, html, subject, logoBuffer);
 }
 
 /**
@@ -393,10 +405,8 @@ export async function sendNewOrderNotification(
 
   if (isSmtpConfigured()) {
     const result = await sendViaSmtp(params.to, subject, html, EMAIL_REPLY_TO ?? undefined);
-    if (!result.ok) {
-      console.error("[Email] New order notification failed (SMTP):", result.error);
-    }
-    return result;
+    if (result.ok) return result;
+    console.error("[Email] New order notification SMTP failed, trying Resend:", result.error);
   }
 
   if (!RESEND_API_KEY) {
@@ -450,8 +460,7 @@ export async function sendPaymentFailed(
       await logEmail(params.to, "payment_failed", "sent", params.orderMetadataId ?? null, "smtp", null);
       return { ok: true };
     }
-    await logEmail(params.to, "payment_failed", "failed", params.orderMetadataId ?? null, null, result.error ?? null);
-    return { ok: false, error: result.error };
+    console.error("[Email] Payment failed email SMTP error, trying Resend:", result.error);
   }
 
   if (!RESEND_API_KEY) {
