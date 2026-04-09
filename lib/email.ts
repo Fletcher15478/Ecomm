@@ -10,9 +10,14 @@ const EMAIL_FROM = process.env.EMAIL_FROM ?? "orders@example.com";
 const EMAIL_REPLY_TO = process.env.EMAIL_REPLY_TO;
 
 /** Gmail SMTP: no domain verification. Set USE_SMTP_GMAIL=1, SMTP_USER=your@gmail.com, SMTP_APP_PASSWORD=16-char app password. */
-const USE_SMTP_GMAIL = process.env.USE_SMTP_GMAIL === "1" || process.env.USE_SMTP_GMAIL === "true";
+const USE_SMTP_GMAIL_RAW = (process.env.USE_SMTP_GMAIL ?? "").toLowerCase().trim();
+const USE_SMTP_GMAIL =
+  USE_SMTP_GMAIL_RAW === "1" || USE_SMTP_GMAIL_RAW === "true" || USE_SMTP_GMAIL_RAW === "yes";
 const SMTP_USER = process.env.SMTP_USER ?? "";
 const SMTP_APP_PASSWORD = process.env.SMTP_APP_PASSWORD ?? "";
+
+const ERR_GMAIL_NOT_CONFIGURED_ON_SERVER =
+  "Gmail SMTP is not enabled on this server. On Render, set USE_SMTP_GMAIL=1 (or true), SMTP_USER, and SMTP_APP_PASSWORD—the same values as in .env.local. Or add RESEND_API_KEY.";
 
 function isSmtpConfigured(): boolean {
   return USE_SMTP_GMAIL && SMTP_USER.length > 0 && SMTP_APP_PASSWORD.length > 0;
@@ -297,7 +302,7 @@ async function sendOrderConfirmationViaResend(
   logoBuffer: Buffer | null
 ): Promise<{ ok: boolean; error?: string }> {
   if (!RESEND_API_KEY) {
-    return { ok: false, error: "RESEND_API_KEY not configured" };
+    return { ok: false, error: "RESEND_API_KEY not configured (optional fallback when Gmail fails)" };
   }
   const resend = new Resend(RESEND_API_KEY);
   const result = await sendWithRetry(() =>
@@ -371,7 +376,14 @@ export async function sendOrderConfirmation(
     const fallback = await sendOrderConfirmationViaResend(params, html, subject, logoBuffer);
     if (fallback.ok) return fallback;
     console.error("[Email] Order confirmation Resend also failed:", fallback.error, "| SMTP was:", result.error);
-    return { ok: false, error: fallback.error ?? result.error };
+    const smtpErr = result.error ?? "unknown";
+    if (!RESEND_API_KEY || String(fallback.error).includes("RESEND_API_KEY")) {
+      return {
+        ok: false,
+        error: `Gmail SMTP failed: ${smtpErr}. You are not using Resend—fix Gmail on the server (USE_SMTP_GMAIL, SMTP_USER, SMTP_APP_PASSWORD) or add RESEND_API_KEY as backup.`,
+      };
+    }
+    return { ok: false, error: fallback.error ?? smtpErr };
   }
 
   if (!RESEND_API_KEY) {
@@ -381,9 +393,9 @@ export async function sendOrderConfirmation(
       "failed",
       params.orderMetadataId ?? null,
       null,
-      "RESEND_API_KEY not configured (and SMTP not configured)"
+      ERR_GMAIL_NOT_CONFIGURED_ON_SERVER
     );
-    return { ok: false, error: "Email not configured" };
+    return { ok: false, error: ERR_GMAIL_NOT_CONFIGURED_ON_SERVER };
   }
 
   return sendOrderConfirmationViaResend(params, html, subject, logoBuffer);
@@ -407,11 +419,17 @@ export async function sendNewOrderNotification(
     const result = await sendViaSmtp(params.to, subject, html, EMAIL_REPLY_TO ?? undefined);
     if (result.ok) return result;
     console.error("[Email] New order notification SMTP failed, trying Resend:", result.error);
+    if (!RESEND_API_KEY) {
+      return {
+        ok: false,
+        error: `Gmail SMTP failed: ${result.error ?? "unknown"}. Resend is not configured; fix Gmail on the server or add RESEND_API_KEY.`,
+      };
+    }
   }
 
   if (!RESEND_API_KEY) {
-    console.error("[Email] New order notification skipped: RESEND_API_KEY not set");
-    return { ok: false, error: "RESEND_API_KEY not configured" };
+    console.error("[Email] New order notification skipped:", ERR_GMAIL_NOT_CONFIGURED_ON_SERVER);
+    return { ok: false, error: ERR_GMAIL_NOT_CONFIGURED_ON_SERVER };
   }
 
   const resend = new Resend(RESEND_API_KEY);
@@ -461,6 +479,20 @@ export async function sendPaymentFailed(
       return { ok: true };
     }
     console.error("[Email] Payment failed email SMTP error, trying Resend:", result.error);
+    if (!RESEND_API_KEY) {
+      await logEmail(
+        params.to,
+        "payment_failed",
+        "failed",
+        params.orderMetadataId ?? null,
+        null,
+        `Gmail SMTP failed: ${result.error ?? "unknown"}; no Resend`
+      );
+      return {
+        ok: false,
+        error: `Gmail SMTP failed: ${result.error ?? "unknown"}. Resend is not configured; fix Gmail on the server or add RESEND_API_KEY.`,
+      };
+    }
   }
 
   if (!RESEND_API_KEY) {
@@ -470,9 +502,9 @@ export async function sendPaymentFailed(
       "failed",
       params.orderMetadataId ?? null,
       null,
-      "RESEND_API_KEY not configured"
+      ERR_GMAIL_NOT_CONFIGURED_ON_SERVER
     );
-    return { ok: false, error: "Email not configured" };
+    return { ok: false, error: ERR_GMAIL_NOT_CONFIGURED_ON_SERVER };
   }
 
   const resend = new Resend(RESEND_API_KEY);
