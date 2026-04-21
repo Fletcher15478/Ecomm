@@ -235,6 +235,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const orderItemsForDb = lines.map((l, i) => ({
+      name: l.name,
+      quantity: l.quantity,
+      price_cents: Number(l.basePriceMoney.amount),
+      total_cents: Number(l.basePriceMoney.amount) * l.quantity,
+      ...(cart[i]?.note && { note: cart[i].note }),
+    }));
+
     const { data: inserted, error: insertError } = await supabase
       .from("order_metadata")
       .insert({
@@ -250,6 +258,7 @@ export async function POST(request: NextRequest) {
         customer_name: customerName,
         shipping_address: shippingAddressJson,
         order_note: orderNote?.trim() || null,
+        order_items: orderItemsForDb,
       })
       .select("id")
       .single();

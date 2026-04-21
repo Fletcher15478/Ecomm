@@ -34,6 +34,13 @@ type OrderRow = {
   shipping_address?: ShippingAddress | null;
   order_note?: string | null;
   shipping_breakdown?: ShippingBreakdown | null;
+  order_items?: Array<{
+    name?: string;
+    quantity?: number;
+    price_cents?: number;
+    total_cents?: number;
+    note?: string;
+  }> | null;
 };
 
 function formatAddress(addr: ShippingAddress | null | undefined): string {
@@ -52,6 +59,22 @@ function formatShipping(b: ShippingBreakdown | null | undefined): string {
   const cents = Number(b.total);
   const curr = b.currency ?? "USD";
   return `$${(cents / 100).toFixed(2)} ${curr}`;
+}
+
+function formatOrderItems(
+  items: OrderRow["order_items"],
+  currency: string
+): string {
+  if (!items || items.length === 0) return "—";
+  return items
+    .map((it) => {
+      const qty = it.quantity ?? 1;
+      const name = (it.name ?? "Item").trim();
+      const note = it.note?.trim();
+      const total = it.total_cents != null ? `$${(Number(it.total_cents) / 100).toFixed(2)} ${currency}` : "";
+      return `${qty}× ${name}${note ? ` — ${note}` : ""}${total ? ` (${total})` : ""}`.trim();
+    })
+    .join("\n");
 }
 
 export function OrdersTable({ orders }: { orders: OrderRow[] }) {
@@ -132,6 +155,14 @@ export function OrdersTable({ orders }: { orders: OrderRow[] }) {
                             <div>
                               <dt className="text-gray-500 inline">Shipping: </dt>
                               <dd className="inline">{formatShipping(o.shipping_breakdown)}</dd>
+                            </div>
+                            <div className="pt-2">
+                              <dt className="text-gray-500 block">Items / choices:</dt>
+                              <dd className="block mt-1">
+                                <pre className="whitespace-pre-wrap font-sans text-gray-800 bg-white/60 border border-gray-200 rounded p-2">
+                                  {formatOrderItems(o.order_items, o.currency)}
+                                </pre>
+                              </dd>
                             </div>
                           </dl>
                         </div>
