@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { CartItem } from "@/app/cart/CartContext";
+import type { CheckoutDiscountPreview } from "@/types";
 
 const US_STATES = [
   "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
@@ -28,7 +29,6 @@ declare global {
 
 interface CheckoutFormProps {
   items: CartItem[];
-  shippingState: string;
   setShippingState: (s: string) => void;
   shippingBreakdown: {
     allowed: boolean;
@@ -36,29 +36,31 @@ interface CheckoutFormProps {
     total: number;
     currency: string;
   } | null;
-  loadingShipping: boolean;
   totalCents: number;
   currency: string;
   onSuccess: () => void;
   canPay: boolean;
   squareReady?: boolean;
+  onDiscountPreviewChange: (preview: CheckoutDiscountPreview | null) => void;
 }
 
 export function CheckoutForm({
   items,
-  shippingState,
   setShippingState,
   shippingBreakdown,
-  loadingShipping,
   totalCents,
   currency,
   onSuccess,
   canPay,
   squareReady = false,
+  onDiscountPreviewChange,
 }: CheckoutFormProps) {
   const router = useRouter();
   const cardContainerRef = useRef<HTMLDivElement>(null);
   const [couponCode, setCouponCode] = useState("");
+  const [appliedCode, setAppliedCode] = useState<string | null>(null);
+  const [discountBusy, setDiscountBusy] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
   const [billing, setBilling] = useState({
     firstName: "",
     lastName: "",
@@ -98,9 +100,86 @@ export function CheckoutForm({
 
   // Sync shipping state for API (2-letter) from billing or shipping
   const effectiveState = shipToDifferent ? shipping.state : billing.state;
+  const stateForApi = effectiveState.trim().toUpperCase().slice(0, 2);
   useEffect(() => {
     if (effectiveState.length <= 2) setShippingState(effectiveState.toUpperCase().slice(0, 2));
   }, [effectiveState, setShippingState]);
+
+  const cartFingerprint = items.map((i) => `${i.variationId}:${i.quantity}`).join("|");
+  const appliedCodeRef = useRef<string | null>(null);
+  appliedCodeRef.current = appliedCode;
+
+  const fetchDiscountPreview = useCallback(
+    async (code: string): Promise<boolean> => {
+      setDiscountBusy(true);
+      setCouponError(null);
+      try {
+        const cart = items.map((i) => ({
+          catalogObjectId: i.catalogObjectId,
+          quantity: i.quantity,
+          variationId: i.variationId,
+          ...(i.note && { note: i.note }),
+        }));
+        const res = await fetch("/api/checkout/totals", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cart,
+            shippingState: stateForApi,
+            discountCode: code,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setCouponError(typeof data.error === "string" ? data.error : "That discount code is not valid.");
+          onDiscountPreviewChange(null);
+          return false;
+        }
+        onDiscountPreviewChange({
+          grossSubtotalCents: data.grossSubtotalCents,
+          shippingCents: data.shippingCents,
+          discountCents: data.discountCents,
+          totalCents: data.totalCents,
+          discountLabel: typeof data.discountName === "string" ? data.discountName : code,
+        });
+        return true;
+      } finally {
+        setDiscountBusy(false);
+      }
+    },
+    [items, stateForApi, onDiscountPreviewChange]
+  );
+
+  /** Re-price when cart or shipped state changes while a code is applied (not on initial Apply — that calls fetch directly). */
+  useEffect(() => {
+    const code = appliedCodeRef.current;
+    if (!code || stateForApi.length !== 2) return;
+    if (!shippingBreakdown?.allowed) {
+      setAppliedCode(null);
+      onDiscountPreviewChange(null);
+      setCouponError("Shipping is unavailable for your address — discount cleared.");
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(() => {
+      void (async () => {
+        const ok = await fetchDiscountPreview(code);
+        if (cancelled) return;
+        if (!ok) setAppliedCode(null);
+      })();
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [
+    cartFingerprint,
+    stateForApi,
+    shippingBreakdown?.allowed,
+    shippingBreakdown?.total,
+    fetchDiscountPreview,
+    onDiscountPreviewChange,
+  ]);
 
   // Attach Square card when step 2 is visible (Square needs a visible container with real size)
   useEffect(() => {
@@ -164,6 +243,31 @@ export function CheckoutForm({
     setTimeout(() => paymentSectionRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };
 
+  const handleApplyDiscount = async () => {
+    const code = couponCode.trim();
+    if (!code) {
+      setCouponError("Enter a discount code.");
+      return;
+    }
+    if (stateForApi.length !== 2) {
+      setCouponError("Choose your state so shipping can be calculated, then apply your code.");
+      return;
+    }
+    if (!shippingBreakdown?.allowed) {
+      setCouponError(shippingBreakdown?.blockedReason ?? "Shipping is not available for this order.");
+      return;
+    }
+    const ok = await fetchDiscountPreview(code);
+    if (ok) setAppliedCode(code.trim());
+    else setAppliedCode(null);
+  };
+
+  const handleRemoveDiscount = () => {
+    setAppliedCode(null);
+    setCouponError(null);
+    onDiscountPreviewChange(null);
+  };
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -177,8 +281,8 @@ export function CheckoutForm({
         setError("Payment form is not ready yet. Please wait for the card fields to appear, then try again.");
         return;
       }
-      const stateForApi = shipToDifferent ? shipping.state.trim().toUpperCase().slice(0, 2) : billing.state.trim().toUpperCase().slice(0, 2);
-      if (!stateForApi || stateForApi.length !== 2) {
+      const payState = shipToDifferent ? shipping.state.trim().toUpperCase().slice(0, 2) : billing.state.trim().toUpperCase().slice(0, 2);
+      if (!payState || payState.length !== 2) {
         setError("Please enter a valid state.");
         return;
       }
@@ -212,11 +316,12 @@ export function CheckoutForm({
               variationId: i.variationId,
               ...(i.note && { note: i.note }),
             })),
-            shippingState: stateForApi,
+            shippingState: payState,
             email: billing.email.trim(),
             paymentNonce: tokenResult.token,
             shippingAddress: billing.address1.trim() ? shippingAddress : undefined,
             ...(orderNote.trim() && { orderNote: orderNote.trim() }),
+            ...(appliedCode?.trim() && { discountCode: appliedCode.trim() }),
           }),
         });
 
@@ -236,7 +341,7 @@ export function CheckoutForm({
         setSubmitting(false);
       }
     },
-    [billing, shipping, shipToDifferent, items, orderNote, onSuccess, router]
+    [billing, shipping, shipToDifferent, items, orderNote, onSuccess, router, appliedCode]
   );
 
   const inputClass = "w-full border border-gray-300 rounded-lg px-3 py-2.5 text-gray-900 focus:ring-2 focus:ring-[var(--millies-pink)] focus:border-[var(--millies-pink)] outline-none";
@@ -244,25 +349,59 @@ export function CheckoutForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      {/* Coupons */}
+      {/* Discount code (Square catalog discount name for this location) */}
       <section>
-        <h2 className="checkout-section-title mb-3">Coupons</h2>
-        <div className="flex gap-2">
+        <h2 className="checkout-section-title mb-3">Discount code</h2>
+        <p className="text-sm text-gray-600 mb-2">
+          Use your Square promo code exactly as the discount appears in catalog for Millie&apos;s Ice Cream Works.
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
           <input
             type="text"
             value={couponCode}
-            onChange={(e) => setCouponCode(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setCouponCode(v);
+              const nz = v.trim().toUpperCase().replace(/\s+/g, " ");
+              const ac = appliedCode?.trim().toUpperCase().replace(/\s+/g, " ") ?? "";
+              if (appliedCode && nz !== ac) {
+                setAppliedCode(null);
+                setCouponError(null);
+                onDiscountPreviewChange(null);
+              }
+            }}
             placeholder="Code"
             className={`${inputClass} flex-1`}
+            disabled={discountBusy}
+            autoComplete="off"
+            aria-label="Discount code"
           />
-          <button
-            type="button"
-            className="px-4 py-2.5 rounded-lg font-semibold text-white whitespace-nowrap"
-            style={{ background: "var(--millies-pink)", fontFamily: "var(--font-program-narrow)" }}
-          >
-            Apply
-          </button>
+          <div className="flex gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => void handleApplyDiscount()}
+              disabled={discountBusy}
+              className="px-4 py-2.5 rounded-lg font-semibold text-white whitespace-nowrap disabled:opacity-60"
+              style={{ background: "var(--millies-pink)", fontFamily: "var(--font-program-narrow)" }}
+            >
+              {discountBusy ? "Checking…" : "Apply"}
+            </button>
+            {appliedCode && (
+              <button
+                type="button"
+                onClick={handleRemoveDiscount}
+                disabled={discountBusy}
+                className="px-4 py-2.5 rounded-lg font-semibold border border-gray-300 text-gray-800 whitespace-nowrap hover:bg-gray-50 disabled:opacity-60"
+              >
+                Remove
+              </button>
+            )}
+          </div>
         </div>
+        {couponError && <p className="text-red-600 text-sm mt-2">{couponError}</p>}
+        {!couponError && appliedCode && (
+          <p className="text-green-800 text-sm mt-2 font-medium">&ldquo;{appliedCode}&rdquo; applied — review your total on the right.</p>
+        )}
       </section>
 
       {/* Billing details */}

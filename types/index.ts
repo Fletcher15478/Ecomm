@@ -7,6 +7,15 @@ export interface CartItemInput {
   note?: string;
 }
 
+/** Client preview of checkout totals after a Square catalog discount (from POST /api/checkout/totals). */
+export interface CheckoutDiscountPreview {
+  grossSubtotalCents: number;
+  shippingCents: number;
+  discountCents: number;
+  totalCents: number;
+  discountLabel: string;
+}
+
 /** Server-validated line item with price from Square. */
 export interface CartLineItem {
   catalogObjectId: string;

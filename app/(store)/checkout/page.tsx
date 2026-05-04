@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/app/cart/CartContext";
 import { CheckoutForm } from "./CheckoutForm";
+import type { CheckoutDiscountPreview } from "@/types";
 
 const APP_ID = process.env.NEXT_PUBLIC_SQUARE_APPLICATION_ID ?? "";
 const LOCATION_ID = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID ?? "";
@@ -30,6 +31,7 @@ export default function CheckoutPage() {
     currency: string;
   } | null>(null);
   const [loadingShipping, setLoadingShipping] = useState(false);
+  const [discountPreview, setDiscountPreview] = useState<CheckoutDiscountPreview | null>(null);
   const currency = items[0]?.currency ?? "USD";
 
   const fetchShipping = useCallback(async () => {
@@ -106,7 +108,8 @@ export default function CheckoutPage() {
   }
 
   const shippingTotalCents = shippingBreakdown?.allowed ? shippingBreakdown.total : 0;
-  const totalCents = subtotalCents + shippingTotalCents;
+  const baseTotalCents = subtotalCents + shippingTotalCents;
+  const totalCents = discountPreview?.totalCents ?? baseTotalCents;
   const canPay = shippingBreakdown?.allowed && APP_ID && LOCATION_ID;
 
   return (
@@ -132,15 +135,14 @@ export default function CheckoutPage() {
             <div className="lg:col-span-2">
               <CheckoutForm
                 items={items}
-                shippingState={shippingState.trim()}
                 setShippingState={setShippingState}
                 shippingBreakdown={shippingBreakdown}
-                loadingShipping={loadingShipping}
                 totalCents={totalCents}
                 currency={currency}
                 onSuccess={clearCart}
                 canPay={!!canPay}
                 squareReady={squareReady}
+                onDiscountPreviewChange={setDiscountPreview}
               />
             </div>
 
@@ -181,6 +183,14 @@ export default function CheckoutPage() {
                           : "—"}
                     </span>
                   </div>
+                  {discountPreview && discountPreview.discountCents > 0 && (
+                    <div className="flex justify-between text-emerald-800">
+                      <span className="checkout-label">
+                        Discount{discountPreview.discountLabel ? ` (${discountPreview.discountLabel})` : ""}
+                      </span>
+                      <span>−{formatMoney(discountPreview.discountCents, currency)}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex justify-between font-bold text-base mt-4 pt-4 border-t border-gray-200">
                   <span className="checkout-section-title">Total</span>

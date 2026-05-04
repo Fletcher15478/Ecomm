@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSquareClient, listCatalogItems, validateCart, SQUARE_LOCATION_ID } from "@/lib/square";
+import {
+  buildMilliesSquareDraftOrder,
+  findMilliesSquareDiscountByCode,
+  listMilliesSquareCatalogDiscounts,
+  normalizeDiscountCodeInput,
+  type MilliesSquareDiscount,
+} from "@/lib/squareCheckout";
 import { calculateShipping, type ShippingCartItem } from "@/lib/shipping";
 import { createSupabaseAdmin } from "@/lib/supabase/admin";
 import { sendOrderConfirmation, sendNewOrderNotification } from "@/lib/email";
@@ -11,6 +18,8 @@ interface CheckoutBody {
   idempotencyKey: string;
   cart: CartItemInput[];
   shippingState: string;
+  /** Square catalog DISCOUNT name, case-insensitive; optional. */
+  discountCode?: string;
   email: string;
   paymentNonce: string;
   shippingAddress?: {
@@ -47,6 +56,7 @@ export async function POST(request: NextRequest) {
     paymentNonce,
     shippingAddress,
     orderNote,
+    discountCode: discountCodeRaw,
   } = body;
 
   if (
@@ -116,62 +126,63 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const subtotalCents = Number(
-    lines.reduce(
-      (sum, l) => sum + l.basePriceMoney.amount * BigInt(l.quantity),
-      BigInt(0)
-    )
-  );
   const shippingTotalCents = shippingBreakdown.total;
-  const totalCents = subtotalCents + shippingTotalCents;
-  const currency = shippingBreakdown.currency ?? "USD";
+  const currency = lines[0]?.basePriceMoney.currency ?? shippingBreakdown.currency ?? "USD";
 
-  const orderLineItems = lines.map((l, i) => ({
-    uid: `line-${i}`,
-    name: l.name,
-    quantity: String(l.quantity),
-    catalogObjectId: l.variationId,
-    basePriceMoney: {
-      amount: l.basePriceMoney.amount,
-      currency: l.basePriceMoney.currency,
-    },
-    ...(cart[i]?.note && { note: cart[i].note }),
-  }));
+  const discountRequested =
+    typeof discountCodeRaw === "string" ? normalizeDiscountCodeInput(discountCodeRaw) !== "" : false;
+  let discountApplied: MilliesSquareDiscount | null = null;
+  if (discountRequested && typeof discountCodeRaw === "string") {
+    const catalogDiscounts = await listMilliesSquareCatalogDiscounts();
+    discountApplied = findMilliesSquareDiscountByCode(discountCodeRaw, catalogDiscounts);
+    if (!discountApplied) {
+      return NextResponse.json(
+        { error: "That discount code is not valid.", codeInvalid: true },
+        { status: 400 }
+      );
+    }
+  }
 
-  const serviceCharges = [
-    {
-      uid: "shipping",
-      name: "Shipping",
-      amountMoney: {
-        amount: BigInt(shippingTotalCents),
-        currency,
-      },
-      calculationPhase: "SUBTOTAL_PHASE" as const,
-    },
-  ];
+  const orderDraft = buildMilliesSquareDraftOrder({
+    locationId,
+    lines,
+    lineNotes: cart.map((c) => c.note),
+    shippingTotalCents,
+    currency,
+    discount: discountApplied,
+  });
 
   try {
     const createOrderResponse = await client.ordersApi.createOrder({
       idempotencyKey: idempotencyKey + "-order",
-      order: {
-        locationId,
-        lineItems: orderLineItems,
-        serviceCharges,
-      },
+      order: orderDraft,
     });
 
-    const orderId = createOrderResponse.result.order?.id;
-    if (!orderId) {
-      const errMsg = createOrderResponse.result.errors?.map((e) => e.detail).join("; ") ?? "Create order failed";
-      return NextResponse.json({ error: errMsg }, { status: 400 });
+    const createErrors = createOrderResponse.result.errors ?? [];
+    if (createErrors.length > 0) {
+      const errMsg = createErrors.map((e) => e.detail).join("; ") ?? "Create order failed";
+      return NextResponse.json(
+        { error: errMsg, ...(discountApplied && { codeInvalid: true }) },
+        { status: 400 }
+      );
     }
+
+    const createdOrder = createOrderResponse.result.order;
+    const orderId = createdOrder?.id;
+    const totalMoney = createdOrder?.totalMoney;
+    if (!orderId || !totalMoney?.amount) {
+      return NextResponse.json({ error: "Create order failed" }, { status: 400 });
+    }
+
+    const totalCents = Number(totalMoney.amount);
+    const paymentCurrency = totalMoney.currency ?? currency;
 
     const createPaymentResponse = await client.paymentsApi.createPayment({
       sourceId: paymentNonce,
       idempotencyKey: idempotencyKey + "-payment",
       amountMoney: {
         amount: BigInt(totalCents),
-        currency,
+        currency: paymentCurrency,
       },
       orderId,
       locationId,
@@ -215,7 +226,7 @@ export async function POST(request: NextRequest) {
         shipping_state: shippingState.trim(),
         shipping_breakdown: shippingBreakdown,
         amount_total_cents: totalCents,
-        currency,
+        currency: paymentCurrency,
         status: "payment_failed",
         customer_name: customerName,
         shipping_address: shippingAddressJson,
@@ -253,7 +264,7 @@ export async function POST(request: NextRequest) {
         shipping_state: shippingState.trim(),
         shipping_breakdown: shippingBreakdown,
         amount_total_cents: totalCents,
-        currency,
+        currency: paymentCurrency,
         status: "completed",
         customer_name: customerName,
         shipping_address: shippingAddressJson,
@@ -294,7 +305,7 @@ export async function POST(request: NextRequest) {
       lines: orderSummaryLines,
       shippingBreakdown,
       totalCents,
-      currency,
+      currency: paymentCurrency,
       orderMetadataId,
       ...(orderNote?.trim() && { orderNote: orderNote.trim() }),
     });
@@ -314,7 +325,7 @@ export async function POST(request: NextRequest) {
         lines: orderSummaryLines,
         shippingBreakdown,
         totalCents,
-        currency,
+        currency: paymentCurrency,
         ...(orderNote?.trim() && { orderNote: orderNote.trim() }),
         ...(addressBlock && { addressBlock }),
       });
